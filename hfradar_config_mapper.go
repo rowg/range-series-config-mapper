@@ -3,6 +3,10 @@ package main
 import (
 	"flag"
 	"fmt"
+
+	"git.axiom/axiom/hfradar-config-mapper/internal/mapping"
+	"git.axiom/axiom/hfradar-config-mapper/internal/read"
+	"git.axiom/axiom/hfradar-config-mapper/internal/write"
 )
 
 func parseArgs() (string, bool, string, string, []string) {
@@ -28,7 +32,7 @@ func parseArgs() (string, bool, string, string, []string) {
 }
 
 func readConfigFiles(siteDir string, config_type string) ([]string, error) {
-	config_paths, err := FindFilesMatchingPattern(siteDir+"/"+config_type, `\d{4}\d{2}\d{2}T\d{2}\d{2}\d{2}Z$`, true)
+	config_paths, err := read.FindFilesMatchingPattern(siteDir+"/"+config_type, `\d{4}\d{2}\d{2}T\d{2}\d{2}\d{2}Z$`, true)
 	fmt.Printf("Checking following path for configs: %v\n", siteDir+"/"+config_type)
 
 	if err != nil {
@@ -39,7 +43,7 @@ func readConfigFiles(siteDir string, config_type string) ([]string, error) {
 }
 
 func readRangeseriesFiles(siteDir string) ([]string, error) {
-	paths, err := FindFilesMatchingPattern(siteDir+"/"+"RangeSeries", `\d{4}\/\d{2}\/\d{2}/.*.rs$`, false)
+	paths, err := read.FindFilesMatchingPattern(siteDir+"/"+"RangeSeries", `\d{4}\/\d{2}\/\d{2}/.*.rs$`, false)
 
 	if err != nil {
 		return nil, err
@@ -51,9 +55,9 @@ func readRangeseriesFiles(siteDir string) ([]string, error) {
 func writeResult(mapping map[string]string, format string, fileName string) {
 	// TODO: Handle neither format being passed in
 	if format == "JSON" {
-		saveMapAsJson(mapping, fileName)
+		write.SaveMapAsJson(mapping, fileName)
 	} else if format == "CSV" {
-		saveMapAsCsv(mapping, fileName)
+		write.SaveMapAsCsv(mapping, fileName)
 	}
 }
 
@@ -67,8 +71,8 @@ func main() {
 	operatorConfigs, _ := readConfigFiles(targetSiteDir, "Config_Operator")
 
 	// 2.b. Build mapping of time intervals to configs
-	autoConfigIntervals := buildAutoConfigIntervals(autoConfigs)
-	operatorConfigIntervals := buildOperatorConfigIntervals(operatorConfigs)
+	autoConfigIntervals := mapping.BuildAutoConfigIntervals(autoConfigs)
+	operatorConfigIntervals := mapping.BuildOperatorConfigIntervals(operatorConfigs)
 
 	// 3. Build mapping of RangeSeries files to Config directories
 	var rangeSeriesFilePaths []string
@@ -78,7 +82,7 @@ func main() {
 		rangeSeriesFilePaths = targetRangeseriesFiles
 	}
 
-	rangeSeriesToConfig := createRangeSeriesToConfigMap(rangeSeriesFilePaths, autoConfigIntervals, operatorConfigIntervals)
+	rangeSeriesToConfig := mapping.CreateRangeSeriesToConfigMap(rangeSeriesFilePaths, autoConfigIntervals, operatorConfigIntervals)
 
 	// 4. Write mapping to disk
 	writeResult(rangeSeriesToConfig, outputFileType, outputFileName)

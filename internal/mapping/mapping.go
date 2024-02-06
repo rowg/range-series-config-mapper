@@ -1,4 +1,4 @@
-package main
+package mapping
 
 import (
 	"fmt"
@@ -7,6 +7,8 @@ import (
 	"slices"
 	"strings"
 	"time"
+
+	"git.axiom/axiom/hfradar-config-mapper/internal/config_interval"
 )
 
 func parseDateTimeWithRegex(str string, pattern string) (time.Time, error) {
@@ -40,8 +42,8 @@ func extractTimestampStr(str string, pattern string) (string, error) {
 	return "", fmt.Errorf("no matches found")
 }
 
-func buildOperatorConfigIntervals(configs []string) []ConfigInterval {
-	res := []ConfigInterval{}
+func BuildOperatorConfigIntervals(configs []string) []config_interval.ConfigInterval {
+	res := []config_interval.ConfigInterval{}
 
 	// Ensure configs are sorted
 	slices.Sort(configs)
@@ -54,15 +56,19 @@ func buildOperatorConfigIntervals(configs []string) []ConfigInterval {
 		endTime, _ := parseDateTimeWithRegex(timeComponents[1], `\d{4}\d{2}\d{2}T\d{2}\d{2}\d{2}Z`)
 
 		// Create new time interval
-		timeInterval := ConfigInterval{startTime, endTime, configPath}
+		timeInterval := config_interval.ConfigInterval{
+			Start:  startTime,
+			End:    endTime,
+			Config: configPath,
+		}
 		res = append(res, timeInterval)
 	}
 
 	return res
 }
 
-func buildAutoConfigIntervals(configs []string) []ConfigInterval {
-	res := []ConfigInterval{}
+func BuildAutoConfigIntervals(configs []string) []config_interval.ConfigInterval {
+	res := []config_interval.ConfigInterval{}
 
 	// Ensure configs are sorted
 	slices.Sort(configs)
@@ -71,7 +77,11 @@ func buildAutoConfigIntervals(configs []string) []ConfigInterval {
 		configTime, _ := parseDateTimeWithRegex(configPath, `\d{4}\d{2}\d{2}T\d{2}\d{2}\d{2}Z`)
 
 		// Create new time interval
-		timeInterval := ConfigInterval{configTime, time.Now().UTC().Truncate(time.Millisecond * 1000), configPath}
+		timeInterval := config_interval.ConfigInterval{
+			Start:  configTime,
+			End:    time.Now().UTC().Truncate(time.Millisecond * 1000),
+			Config: configPath,
+		}
 		res = append(res, timeInterval)
 
 		// Set end time of previous interval to start time of current interval
@@ -83,7 +93,7 @@ func buildAutoConfigIntervals(configs []string) []ConfigInterval {
 	return res
 }
 
-func getMatchingConfig(timestamp time.Time, autoConfigTimeIntervals, operatorConfigTimeIntervals []ConfigInterval) string {
+func getMatchingConfig(timestamp time.Time, autoConfigTimeIntervals, operatorConfigTimeIntervals []config_interval.ConfigInterval) string {
 	for _, timeInterval := range operatorConfigTimeIntervals {
 		if timeInterval.ContainsTime(timestamp) {
 			return timeInterval.Config
@@ -100,7 +110,7 @@ func getMatchingConfig(timestamp time.Time, autoConfigTimeIntervals, operatorCon
 	return ""
 }
 
-func createRangeSeriesToConfigMap(rangeSeriesFiles []string, autoConfigTimeIntervals, operatorConfigTimeIntervals []ConfigInterval) map[string]string {
+func CreateRangeSeriesToConfigMap(rangeSeriesFiles []string, autoConfigTimeIntervals, operatorConfigTimeIntervals []config_interval.ConfigInterval) map[string]string {
 	result := make(map[string]string)
 
 	// Iterate over each range series file

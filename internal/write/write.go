@@ -1,4 +1,4 @@
-package main
+package write
 
 import (
 	"encoding/csv"
@@ -10,7 +10,7 @@ import (
 const jsonFileEnding = ".json"
 const csvFileEnding = ".csv"
 
-func saveMapAsJson(myMap map[string]string, fileName string) {
+func SaveMapAsJson(myMap map[string]string, fileName string) {
 	jsonData, err := json.Marshal(myMap)
 	if err != nil {
 		log.Fatalf("Error marshalling map to JSON: %v", err)
@@ -23,7 +23,7 @@ func saveMapAsJson(myMap map[string]string, fileName string) {
 	}
 }
 
-func saveMapAsCsv(myMap map[string]string, fileName string) {
+func SaveMapAsCsv(myMap map[string]string, fileName string) {
 	// Create a new CSV file
 	file, err := os.Create(fileName + csvFileEnding)
 	if err != nil {
