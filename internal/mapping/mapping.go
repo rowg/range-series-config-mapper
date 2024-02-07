@@ -2,6 +2,7 @@ package mapping
 
 import (
 	"fmt"
+	"log"
 	"path/filepath"
 	"regexp"
 	"slices"
@@ -43,13 +44,8 @@ func parseConfigDateTime(str string, pattern string) (time.Time, error) {
 	return time.Time{}, fmt.Errorf("no matches found")
 }
 
-func extractTimestampStr(str string, pattern string) (string, error) {
-	re, err := regexp.Compile(pattern)
-	if err != nil {
-		return "", err
-	}
-
-	matches := re.FindStringSubmatch(str)
+func extractTimestampStr(str string, regex *regexp.Regexp) (string, error) {
+	matches := regex.FindStringSubmatch(str)
 	if len(matches) == 1 {
 		return matches[0], nil
 	} else if len(matches) > 1 {
@@ -69,8 +65,15 @@ func BuildOperatorConfigIntervals(configs []string) []config_interval.ConfigInte
 		configFileName := filepath.Base(configPath)
 		timeComponents := strings.Split(configFileName, operatorConfigTimeDelimiter)
 
-		startTime, _ := parseConfigDateTime(timeComponents[configStartTimeIndex], configDateTimePattern)
-		endTime, _ := parseConfigDateTime(timeComponents[configEndTimeIndex], configDateTimePattern)
+		startTime, err := parseConfigDateTime(timeComponents[configStartTimeIndex], configDateTimePattern)
+		if err != nil {
+			log.Fatalf("Error parsing Operator Config start time: %v", err)
+		}
+
+		endTime, err := parseConfigDateTime(timeComponents[configEndTimeIndex], configDateTimePattern)
+		if err != nil {
+			log.Fatalf("Error parsing Operator Config end time: %v", err)
+		}
 
 		// Create new time interval
 		timeInterval := config_interval.ConfigInterval{
@@ -91,7 +94,10 @@ func BuildAutoConfigIntervals(configs []string) []config_interval.ConfigInterval
 	slices.Sort(configs)
 
 	for i, configPath := range configs {
-		configTime, _ := parseConfigDateTime(configPath, configDateTimePattern)
+		configTime, err := parseConfigDateTime(configPath, configDateTimePattern)
+		if err != nil {
+			log.Fatalf("Error parsing Autodetected Config start time: %v", err)
+		}
 
 		// Create new time interval
 		timeInterval := config_interval.ConfigInterval{
@@ -132,14 +138,28 @@ func CreateRangeSeriesToConfigMap(rangeSeriesFiles []string, autoConfigTimeInter
 
 	result := make(map[string]string)
 
+	rangeSeriesDateTimeRegex, err := regexp.Compile(rangeSeriesDateTimePattern)
+	if err != nil {
+		log.Fatalf("Error compiling rangeSeriesDateTimeRegex: %v", err)
+	}
+
 	// Iterate over each range series file
 	for _, rangeSeriesPath := range rangeSeriesFiles {
 		// 1. Extract base file name
 		rangeSeriesName := filepath.Base(rangeSeriesPath)
 
 		// 2. Parse timestamp from filename
-		rangeSeriesTimeStr, _ := extractTimestampStr(rangeSeriesName, rangeSeriesDateTimePattern)
-		rangeSeriesTime, _ := time.Parse(rangeSeriesTimeLayout, rangeSeriesTimeStr)
+		rangeSeriesTimeStr, err := extractTimestampStr(rangeSeriesName, rangeSeriesDateTimeRegex)
+		if err != nil {
+			fmt.Printf("Skipping RangeSeries file '%s': problem extracting timestamp from filename: %v\n", rangeSeriesName, err)
+			continue
+		}
+
+		rangeSeriesTime, err := time.Parse(rangeSeriesTimeLayout, rangeSeriesTimeStr)
+		if err != nil {
+			fmt.Printf("Skipping RangeSeries file '%s': problem parsing filename timestamp: %v\n", rangeSeriesName, err)
+			continue
+		}
 
 		// 3. Retrieve corresponding config file
 		matchingConfig := getMatchingConfig(rangeSeriesTime, autoConfigTimeIntervals, operatorConfigTimeIntervals)

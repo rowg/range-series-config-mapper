@@ -56,32 +56,31 @@ func validateArgs(targetRangeseriesFiles []string, allRangeSeries bool, siteDir,
 	}
 }
 
-func readConfigFiles(siteDir string, config_type string) ([]string, error) {
-	config_paths, err := read.FindFilesMatchingPattern(filepath.Join(siteDir, config_type), configFileNamePattern, true)
-	fmt.Printf("Checking following path for configs: %v\n", filepath.Join(siteDir, config_type))
+func readConfigFiles(siteDir string, configType string) []string {
+	fmt.Printf("Checking following path for configs: %v\n", filepath.Join(siteDir, configType))
 
+	configPaths, err := read.FindFilesMatchingPattern(filepath.Join(siteDir, configType), configFileNamePattern, true)
 	if err != nil {
-		return nil, err
+		log.Fatalf("Error reading %s files: %v", configType, err)
 	}
 
-	return config_paths, err
+	return configPaths
 }
 
-func readRangeSeriesFiles(siteDir string) ([]string, error) {
-	paths, err := read.FindFilesMatchingPattern(filepath.Join(siteDir, rangeSeriesDir), rangeSeriesFilePathPattern, false)
+func readRangeSeriesFiles(siteDir string) []string {
 	fmt.Printf("Checking following path for RangeSeries files: %v\n", filepath.Join(siteDir, rangeSeriesDir))
 
+	paths, err := read.FindFilesMatchingPattern(filepath.Join(siteDir, rangeSeriesDir), rangeSeriesFilePathPattern, false)
 	if err != nil {
-		return nil, err
+		log.Fatalf("Error reading RangeSeries files: %v", err)
 	}
 
-	return paths, err
+	return paths
 }
 
 func writeResult(mapping map[string]string, format string, fileName string) {
 	fmt.Println("Writing mapping to disk...")
 
-	// TODO: Handle neither format being passed in
 	if format == "JSON" {
 		write.SaveMapAsJson(mapping, fileName)
 	} else if format == "CSV" {
@@ -96,8 +95,8 @@ func main() {
 
 	// 2. Build mapping of time intervals to configs
 	// 2.a. Retrieve configs
-	autoConfigs, _ := readConfigFiles(siteDir, autoConfigDir)
-	operatorConfigs, _ := readConfigFiles(siteDir, operatorConfigDir)
+	autoConfigs := readConfigFiles(siteDir, autoConfigDir)
+	operatorConfigs := readConfigFiles(siteDir, operatorConfigDir)
 
 	// 2.b. Build mapping of time intervals to configs
 	autoConfigIntervals := mapping.BuildAutoConfigIntervals(autoConfigs)
@@ -106,7 +105,7 @@ func main() {
 	// 3. Build mapping of RangeSeries files to Config directories
 	var rangeSeriesFilePaths []string
 	if allRangeSeries {
-		rangeSeriesFilePaths, _ = readRangeSeriesFiles(siteDir)
+		rangeSeriesFilePaths = readRangeSeriesFiles(siteDir)
 	} else {
 		rangeSeriesFilePaths = targetRangeseriesFiles
 	}

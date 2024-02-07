@@ -21,6 +21,16 @@ GOOS=linux GOARCH=amd64 go build
 ```
 
 ## Usage
+### HFR Site Directory Structure
+The HF Radar archive data is assumed to be structured in the following manner:
+```
+- Operator/
+  - Site/
+    - RangeSeries/
+    - Config_Auto/
+    - Config_Operator/
+```
+
 ### Flags
 `hfradar-config-mapper` accepts the following CLI flags:
 - `--site-dir`: The directory of the HF Radar site that you want to create a RangeSeries:Config mapping for
