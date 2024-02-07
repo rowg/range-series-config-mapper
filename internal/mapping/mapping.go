@@ -134,7 +134,7 @@ func getMatchingConfig(timestamp time.Time, autoConfigTimeIntervals, operatorCon
 }
 
 func CreateRangeSeriesToConfigMap(rangeSeriesFiles []string, autoConfigTimeIntervals, operatorConfigTimeIntervals []config_interval.ConfigInterval) map[string]string {
-	fmt.Println("Computing RangeSeries:Config mapping...")
+	log.Println("Computing RangeSeries:Config mapping...")
 
 	result := make(map[string]string)
 
@@ -151,13 +151,13 @@ func CreateRangeSeriesToConfigMap(rangeSeriesFiles []string, autoConfigTimeInter
 		// 2. Parse timestamp from filename
 		rangeSeriesTimeStr, err := extractTimestampStr(rangeSeriesName, rangeSeriesDateTimeRegex)
 		if err != nil {
-			fmt.Printf("Skipping RangeSeries file '%s': problem extracting timestamp from filename: %v\n", rangeSeriesName, err)
+			log.Printf("Skipping RangeSeries file '%s': problem extracting timestamp from filename: %v\n", rangeSeriesName, err)
 			continue
 		}
 
 		rangeSeriesTime, err := time.Parse(rangeSeriesTimeLayout, rangeSeriesTimeStr)
 		if err != nil {
-			fmt.Printf("Skipping RangeSeries file '%s': problem parsing filename timestamp: %v\n", rangeSeriesName, err)
+			log.Printf("Skipping RangeSeries file '%s': problem parsing filename timestamp: %v\n", rangeSeriesName, err)
 			continue
 		}
 

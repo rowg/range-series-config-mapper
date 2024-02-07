@@ -2,7 +2,6 @@ package main
 
 import (
 	"flag"
-	"fmt"
 	"log"
 	"path/filepath"
 
@@ -29,10 +28,10 @@ func parseArgs() ([]string, bool, string, string, string) {
 
 	targetRangeSeriesFiles := flag.Args()
 
-	fmt.Println("Target site directory:", *siteDir)
-	fmt.Println("Output file type:", *outputFileType)
-	fmt.Println("Output file name:", *outputFileName)
-	fmt.Println("Targetting all RangeSeries files:", *allRangeSeries)
+	log.Println("Target site directory:", *siteDir)
+	log.Println("Output file type:", *outputFileType)
+	log.Println("Output file name:", *outputFileName)
+	log.Println("Targetting all RangeSeries files:", *allRangeSeries)
 
 	return targetRangeSeriesFiles, *allRangeSeries, *siteDir, *outputFileType, *outputFileName
 }
@@ -57,7 +56,7 @@ func validateArgs(targetRangeseriesFiles []string, allRangeSeries bool, siteDir,
 }
 
 func readConfigFiles(siteDir string, configType string) []string {
-	fmt.Printf("Checking following path for configs: %v\n", filepath.Join(siteDir, configType))
+	log.Printf("Checking following path for configs: %v\n", filepath.Join(siteDir, configType))
 
 	configPaths, err := read.FindFilesMatchingPattern(filepath.Join(siteDir, configType), configFileNamePattern, true)
 	if err != nil {
@@ -68,7 +67,7 @@ func readConfigFiles(siteDir string, configType string) []string {
 }
 
 func readRangeSeriesFiles(siteDir string) []string {
-	fmt.Printf("Checking following path for RangeSeries files: %v\n", filepath.Join(siteDir, rangeSeriesDir))
+	log.Printf("Checking following path for RangeSeries files: %v\n", filepath.Join(siteDir, rangeSeriesDir))
 
 	paths, err := read.FindFilesMatchingPattern(filepath.Join(siteDir, rangeSeriesDir), rangeSeriesFilePathPattern, false)
 	if err != nil {
@@ -79,7 +78,7 @@ func readRangeSeriesFiles(siteDir string) []string {
 }
 
 func writeResult(mapping map[string]string, format string, fileName string) {
-	fmt.Println("Writing mapping to disk...")
+	log.Println("Writing mapping to disk...")
 
 	if format == "JSON" {
 		write.SaveMapAsJson(mapping, fileName)

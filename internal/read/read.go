@@ -1,7 +1,7 @@
 package read
 
 import (
-	"fmt"
+	"log"
 	"os"
 	"path/filepath"
 	"regexp"
@@ -17,11 +17,11 @@ func FindFilesMatchingPattern(baseDir string, pattern string, wantDirectories bo
 	err = filepath.WalkDir(baseDir, func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			if os.IsPermission(err) {
-				fmt.Printf("Warning: Permission denied accessing %s, skipping.\n", path)
+				log.Printf("Warning: Permission denied accessing %s, skipping.\n", path)
 				return nil
 			}
 
-			fmt.Println("Unhandled error while finding files:", err)
+			log.Println("Unhandled error while finding files:", err)
 			return err
 		}
 
