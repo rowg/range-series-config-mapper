@@ -4,11 +4,18 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"path/filepath"
 
 	"git.axiom/axiom/hfradar-config-mapper/internal/mapping"
 	"git.axiom/axiom/hfradar-config-mapper/internal/read"
 	"git.axiom/axiom/hfradar-config-mapper/internal/write"
 )
+
+const autoConfigDir = "Config_Auto"
+const operatorConfigDir = "Config_Operator"
+const rangeSeriesDir = "RangeSeries"
+const configFileNamePattern = `\d{4}\d{2}\d{2}T\d{2}\d{2}\d{2}Z(\-\d{4}\d{2}\d{2}T\d{2}\d{2}\d{2}){0,1}$`
+const rangeSeriesFilePathPattern = `\d{4}\/\d{2}\/\d{2}/.*.rs$`
 
 func parseArgs() ([]string, bool, string, string, string) {
 	// TODO: Name return values
@@ -20,14 +27,14 @@ func parseArgs() ([]string, bool, string, string, string) {
 
 	flag.Parse()
 
-	targetRangeseriesFiles := flag.Args()
+	targetRangeSeriesFiles := flag.Args()
 
 	fmt.Println("Target site directory:", *siteDir)
 	fmt.Println("Output file type:", *outputFileType)
 	fmt.Println("Output file name:", *outputFileName)
 	fmt.Println("Targetting all RangeSeries files:", *allRangeSeries)
 
-	return targetRangeseriesFiles, *allRangeSeries, *siteDir, *outputFileType, *outputFileName
+	return targetRangeSeriesFiles, *allRangeSeries, *siteDir, *outputFileType, *outputFileName
 }
 
 func validateArgs(targetRangeseriesFiles []string, allRangeSeries bool, siteDir, outputFileType, outputFileName string) {
@@ -50,8 +57,8 @@ func validateArgs(targetRangeseriesFiles []string, allRangeSeries bool, siteDir,
 }
 
 func readConfigFiles(siteDir string, config_type string) ([]string, error) {
-	config_paths, err := read.FindFilesMatchingPattern(siteDir+"/"+config_type, `\d{4}\d{2}\d{2}T\d{2}\d{2}\d{2}Z$`, true)
-	fmt.Printf("Checking following path for configs: %v\n", siteDir+"/"+config_type)
+	config_paths, err := read.FindFilesMatchingPattern(filepath.Join(siteDir, config_type), configFileNamePattern, true)
+	fmt.Printf("Checking following path for configs: %v\n", filepath.Join(siteDir, config_type))
 
 	if err != nil {
 		return nil, err
@@ -60,8 +67,9 @@ func readConfigFiles(siteDir string, config_type string) ([]string, error) {
 	return config_paths, err
 }
 
-func readRangeseriesFiles(siteDir string) ([]string, error) {
-	paths, err := read.FindFilesMatchingPattern(siteDir+"/"+"RangeSeries", `\d{4}\/\d{2}\/\d{2}/.*.rs$`, false)
+func readRangeSeriesFiles(siteDir string) ([]string, error) {
+	paths, err := read.FindFilesMatchingPattern(filepath.Join(siteDir, rangeSeriesDir), rangeSeriesFilePathPattern, false)
+	fmt.Printf("Checking following path for RangeSeries files: %v\n", filepath.Join(siteDir, rangeSeriesDir))
 
 	if err != nil {
 		return nil, err
@@ -71,6 +79,8 @@ func readRangeseriesFiles(siteDir string) ([]string, error) {
 }
 
 func writeResult(mapping map[string]string, format string, fileName string) {
+	fmt.Println("Writing mapping to disk...")
+
 	// TODO: Handle neither format being passed in
 	if format == "JSON" {
 		write.SaveMapAsJson(mapping, fileName)
@@ -86,8 +96,8 @@ func main() {
 
 	// 2. Build mapping of time intervals to configs
 	// 2.a. Retrieve configs
-	autoConfigs, _ := readConfigFiles(siteDir, "Config_Auto")
-	operatorConfigs, _ := readConfigFiles(siteDir, "Config_Operator")
+	autoConfigs, _ := readConfigFiles(siteDir, autoConfigDir)
+	operatorConfigs, _ := readConfigFiles(siteDir, operatorConfigDir)
 
 	// 2.b. Build mapping of time intervals to configs
 	autoConfigIntervals := mapping.BuildAutoConfigIntervals(autoConfigs)
@@ -96,7 +106,7 @@ func main() {
 	// 3. Build mapping of RangeSeries files to Config directories
 	var rangeSeriesFilePaths []string
 	if allRangeSeries {
-		rangeSeriesFilePaths, _ = readRangeseriesFiles(siteDir)
+		rangeSeriesFilePaths, _ = readRangeSeriesFiles(siteDir)
 	} else {
 		rangeSeriesFilePaths = targetRangeseriesFiles
 	}

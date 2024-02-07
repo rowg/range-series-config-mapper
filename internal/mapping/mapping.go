@@ -11,20 +11,35 @@ import (
 	"git.axiom/axiom/hfradar-config-mapper/internal/config_interval"
 )
 
-func parseDateTimeWithRegex(str string, pattern string) (time.Time, error) {
+const configDateTimePattern = `\d{4}\d{2}\d{2}T\d{2}\d{2}\d{2}Z`
+
+const configTimeLayout = "20060102T150405Z"
+const configStartTimeIndex = 0
+const configEndTimeIndex = 1
+
+const operatorConfigTimeDelimiter = "-"
+
+const rangeSeriesDateTimePattern = `\d{4}_\d{2}_\d{2}_\d{6}`
+const rangeSeriesTimeLayout = "2006_01_02_150405"
+
+func parseConfigDateTime(str string, pattern string) (time.Time, error) {
+	// TODO: Refactor this function to be general purpose
 	re, err := regexp.Compile(pattern)
 	if err != nil {
 		return time.Time{}, err
 	}
 
 	matches := re.FindStringSubmatch(str)
-	if len(matches) > 0 {
-		parsedTime, err := time.Parse("20060102T150405Z", matches[0])
+	if len(matches) == 1 {
+		parsedTime, err := time.Parse(configTimeLayout, matches[0])
 		if err != nil {
 			return time.Time{}, err
 		}
 		return parsedTime, nil
+	} else if len(matches) > 1 {
+		return time.Time{}, fmt.Errorf("multiple matches found")
 	}
+
 	return time.Time{}, fmt.Errorf("no matches found")
 }
 
@@ -35,8 +50,10 @@ func extractTimestampStr(str string, pattern string) (string, error) {
 	}
 
 	matches := re.FindStringSubmatch(str)
-	if len(matches) > 0 {
+	if len(matches) == 1 {
 		return matches[0], nil
+	} else if len(matches) > 1 {
+		return "", fmt.Errorf("multiple matches found")
 	}
 
 	return "", fmt.Errorf("no matches found")
@@ -50,10 +67,10 @@ func BuildOperatorConfigIntervals(configs []string) []config_interval.ConfigInte
 
 	for _, configPath := range configs {
 		configFileName := filepath.Base(configPath)
-		timeComponents := strings.Split(configFileName, "-")
+		timeComponents := strings.Split(configFileName, operatorConfigTimeDelimiter)
 
-		startTime, _ := parseDateTimeWithRegex(timeComponents[0], `\d{4}\d{2}\d{2}T\d{2}\d{2}\d{2}Z`)
-		endTime, _ := parseDateTimeWithRegex(timeComponents[1], `\d{4}\d{2}\d{2}T\d{2}\d{2}\d{2}Z`)
+		startTime, _ := parseConfigDateTime(timeComponents[configStartTimeIndex], configDateTimePattern)
+		endTime, _ := parseConfigDateTime(timeComponents[configEndTimeIndex], configDateTimePattern)
 
 		// Create new time interval
 		timeInterval := config_interval.ConfigInterval{
@@ -74,7 +91,7 @@ func BuildAutoConfigIntervals(configs []string) []config_interval.ConfigInterval
 	slices.Sort(configs)
 
 	for i, configPath := range configs {
-		configTime, _ := parseDateTimeWithRegex(configPath, `\d{4}\d{2}\d{2}T\d{2}\d{2}\d{2}Z`)
+		configTime, _ := parseConfigDateTime(configPath, configDateTimePattern)
 
 		// Create new time interval
 		timeInterval := config_interval.ConfigInterval{
@@ -106,11 +123,13 @@ func getMatchingConfig(timestamp time.Time, autoConfigTimeIntervals, operatorCon
 		}
 	}
 
-	// What to do if no matching config?
+	// TODO: What to do if no matching config?
 	return ""
 }
 
 func CreateRangeSeriesToConfigMap(rangeSeriesFiles []string, autoConfigTimeIntervals, operatorConfigTimeIntervals []config_interval.ConfigInterval) map[string]string {
+	fmt.Println("Computing RangeSeries:Config mapping...")
+
 	result := make(map[string]string)
 
 	// Iterate over each range series file
@@ -119,8 +138,8 @@ func CreateRangeSeriesToConfigMap(rangeSeriesFiles []string, autoConfigTimeInter
 		rangeSeriesName := filepath.Base(rangeSeriesPath)
 
 		// 2. Parse timestamp from filename
-		rangeSeriesTimeStr, _ := extractTimestampStr(rangeSeriesName, `\d{4}_\d{2}_\d{2}_\d{6}`)
-		rangeSeriesTime, _ := time.Parse("2006_01_02_150405", rangeSeriesTimeStr)
+		rangeSeriesTimeStr, _ := extractTimestampStr(rangeSeriesName, rangeSeriesDateTimePattern)
+		rangeSeriesTime, _ := time.Parse(rangeSeriesTimeLayout, rangeSeriesTimeStr)
 
 		// 3. Retrieve corresponding config file
 		matchingConfig := getMatchingConfig(rangeSeriesTime, autoConfigTimeIntervals, operatorConfigTimeIntervals)
