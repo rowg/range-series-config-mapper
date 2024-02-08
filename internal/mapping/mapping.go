@@ -23,6 +23,10 @@ const operatorConfigTimeDelimiter = "-"
 const rangeSeriesDateTimePattern = `\d{4}_\d{2}_\d{2}_\d{6}`
 const rangeSeriesTimeLayout = "2006_01_02_150405"
 
+var timeNow = func() time.Time {
+	return time.Now()
+}
+
 func parseConfigDateTime(str string, pattern string) (time.Time, error) {
 	// TODO: Refactor this function to be general purpose
 	re, err := regexp.Compile(pattern)
@@ -37,8 +41,6 @@ func parseConfigDateTime(str string, pattern string) (time.Time, error) {
 			return time.Time{}, err
 		}
 		return parsedTime, nil
-	} else if len(matches) > 1 {
-		return time.Time{}, fmt.Errorf("multiple matches found")
 	}
 
 	return time.Time{}, fmt.Errorf("no matches found")
@@ -48,8 +50,6 @@ func extractTimestampStr(str string, regex *regexp.Regexp) (string, error) {
 	matches := regex.FindStringSubmatch(str)
 	if len(matches) == 1 {
 		return matches[0], nil
-	} else if len(matches) > 1 {
-		return "", fmt.Errorf("multiple matches found")
 	}
 
 	return "", fmt.Errorf("no matches found")
@@ -102,7 +102,7 @@ func BuildAutoConfigIntervals(configs []string) []config_interval.ConfigInterval
 		// Create new time interval
 		timeInterval := config_interval.ConfigInterval{
 			Start:  configTime,
-			End:    time.Now().UTC().Truncate(time.Millisecond * 1000),
+			End:    timeNow().UTC().Truncate(time.Millisecond * 1000),
 			Config: configPath,
 		}
 		res = append(res, timeInterval)
