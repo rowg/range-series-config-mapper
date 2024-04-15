@@ -5,6 +5,7 @@ import (
 	"log"
 	"path/filepath"
 
+	"git.axiom/axiom/hfradar-config-mapper/internal/logger"
 	"git.axiom/axiom/hfradar-config-mapper/internal/mapping"
 	"git.axiom/axiom/hfradar-config-mapper/internal/read"
 	"git.axiom/axiom/hfradar-config-mapper/internal/write"
@@ -13,7 +14,9 @@ import (
 const autoConfigDir = "Config_Auto"
 const operatorConfigDir = "Config_Operator"
 const rangeSeriesDir = "RangeSeries"
-const configFileNamePattern = `\d{4}\d{2}\d{2}T\d{2}\d{2}\d{2}Z(\-\d{4}\d{2}\d{2}T\d{2}\d{2}\d{2}){0,1}$`
+
+// Split this up
+const configFileNamePattern = `\d{4}\d{2}\d{2}T\d{2}\d{2}\d{2}Z(-(\d{4}\d{2}\d{2}T\d{2}\d{2}\d{2}Z|present))?$`
 const rangeSeriesFilePathPattern = `\d{4}\/\d{2}\/\d{2}/.*.rs$`
 
 func parseArgs() ([]string, bool, string, string, string) {
@@ -100,6 +103,9 @@ func main() {
 	// 2.b. Build mapping of time intervals to configs
 	autoConfigIntervals := mapping.BuildAutoConfigIntervals(autoConfigs)
 	operatorConfigIntervals := mapping.BuildOperatorConfigIntervals(operatorConfigs)
+
+	// 2.c. Validate configs
+	mapping.ValidateOperatorConfigs(operatorConfigIntervals, &logger.StdLogger{})
 
 	// 3. Build mapping of RangeSeries files to Config directories
 	var rangeSeriesFilePaths []string
