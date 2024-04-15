@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"git.axiom/axiom/hfradar-config-mapper/internal/config_interval"
+	"git.axiom/axiom/hfradar-config-mapper/internal/logger"
 )
 
 const configDateTimePattern = `\d{4}\d{2}\d{2}T\d{2}\d{2}\d{2}Z`
@@ -19,6 +20,7 @@ const configStartTimeIndex = 0
 const configEndTimeIndex = 1
 
 const operatorConfigTimeDelimiter = "-"
+const presentToken = "present"
 
 const rangeSeriesDateTimePattern = `\d{4}_\d{2}_\d{2}_\d{6}`
 const rangeSeriesTimeLayout = "2006_01_02_150405"
@@ -58,8 +60,20 @@ func extractTimestampStr(str string, regex *regexp.Regexp) (string, error) {
 func BuildOperatorConfigIntervals(configs []string) []config_interval.ConfigInterval {
 	res := []config_interval.ConfigInterval{}
 
+	configs = slices.Clone(configs)
+
 	// Ensure configs are sorted
-	slices.Sort(configs)
+	slices.SortFunc(configs, func(a, b string) int {
+		// Standard string sort, except when `present` is in the string.
+		// `present` should be considered greater than any valid timestamp
+		if strings.Contains(a, presentToken) && !strings.Contains(b, presentToken) {
+			return 1
+		} else if !strings.Contains(a, presentToken) && strings.Contains(b, presentToken) {
+			return -1
+		}
+		// If both or neither timestamp contains present, sort as regular strings
+		return strings.Compare(a, b)
+	})
 
 	for _, configPath := range configs {
 		configFileName := filepath.Base(configPath)
@@ -70,9 +84,15 @@ func BuildOperatorConfigIntervals(configs []string) []config_interval.ConfigInte
 			log.Fatalf("Error parsing Operator Config start time: %v", err)
 		}
 
-		endTime, err := parseConfigDateTime(timeComponents[configEndTimeIndex], configDateTimePattern)
-		if err != nil {
-			log.Fatalf("Error parsing Operator Config end time: %v", err)
+		var endTime time.Time
+		// If the end time component is presentToken, assign endTime to the current UTC time
+		if timeComponents[configEndTimeIndex] == presentToken {
+			endTime = time.Now().UTC()
+		} else {
+			endTime, err = parseConfigDateTime(timeComponents[configEndTimeIndex], configDateTimePattern)
+			if err != nil {
+				log.Fatalf("Error parsing Operator Config end time: %v", err)
+			}
 		}
 
 		// Create new time interval
@@ -85,6 +105,20 @@ func BuildOperatorConfigIntervals(configs []string) []config_interval.ConfigInte
 	}
 
 	return res
+}
+
+func ValidateOperatorConfigs(configs []config_interval.ConfigInterval, logger logger.Logger) {
+	for i, config := range configs {
+		// Ensure configs do not overlap
+		if i > 0 && config.Start.Before(configs[i-1].End) {
+			logger.Fatalf("Error: Operator config %v overlaps with %v", configs[i-1].Config, config.Config)
+		}
+
+		// Ensure that configs are not in the future
+		if time.Now().Before(config.Start) {
+			logger.Fatalf("Error: Operator config %v is in the future", config.Config)
+		}
+	}
 }
 
 func BuildAutoConfigIntervals(configs []string) []config_interval.ConfigInterval {
@@ -129,7 +163,7 @@ func getMatchingConfig(timestamp time.Time, autoConfigTimeIntervals, operatorCon
 		}
 	}
 
-	// TODO: What to do if no matching config?
+	// Return an empty string is there is no matching config
 	return ""
 }
 

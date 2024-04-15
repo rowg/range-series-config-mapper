@@ -11,11 +11,11 @@ const jsonFileEnding = ".json"
 const csvFileEnding = ".csv"
 
 func SaveMapAsJson(myMap map[string]string, fileName string) {
-	jsonData, err := json.Marshal(myMap)
+	jsonData, err := json.MarshalIndent(myMap, "", "  ")
 	if err != nil {
 		log.Fatalf("Error marshalling map to JSON: %v", err)
 	}
-
+	
 	// Write JSON data to file map.json in current directory
 	err = os.WriteFile(fileName+jsonFileEnding, jsonData, 0644)
 	if err != nil {

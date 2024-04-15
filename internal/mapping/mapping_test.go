@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"git.axiom/axiom/hfradar-config-mapper/internal/config_interval"
+	"git.axiom/axiom/hfradar-config-mapper/internal/logger"
 )
 
 func TestParseConfigDateTime(t *testing.T) {
@@ -125,6 +126,36 @@ func TestBuildOperatorConfigIntervals(t *testing.T) {
 	}
 }
 
+func TestBuildOperatorConfigIntervalsWithPresent(t *testing.T) {
+	// Arrange
+	configs := []string{
+		"20230104T000000Z-present",
+	}
+
+	// Expected ConfigInterval fields
+	expectedStart := time.Date(2023, 01, 04, 0, 0, 0, 0, time.UTC)
+	expectedConfig := "20230104T000000Z-present"
+	expectedEnd := time.Now().UTC()
+
+	// Execute test
+	got := BuildOperatorConfigIntervals(configs)
+
+	// Assert
+	if got[0].Start != expectedStart || got[0].Config != expectedConfig {
+		t.Errorf("Mismatch in start or config: got %v", got[0])
+	}
+
+	// Check that the actual End is after the start of the test
+	if got[0].End.Before(expectedEnd) {
+		t.Errorf("End time %v is before the test start time %v", got[0].End, expectedEnd)
+	}
+
+	// Check that the actual end time is not unreasonably far in the future (more than a few seconds)
+	if got[0].End.After(expectedEnd.Add(time.Second * 5)) {
+		t.Errorf("End time %v is too far in the future compared to the test start time %v", got[0].End, expectedEnd)
+	}
+}
+
 // Mock timeNow function for testing
 var mockTimeNow = func() time.Time {
 	return time.Date(2023, 01, 03, 0, 0, 0, 0, time.UTC)
@@ -162,5 +193,132 @@ func TestBuildAutoConfigIntervals(t *testing.T) {
 
 	if !reflect.DeepEqual(got, expected) {
 		t.Errorf("BuildAutoConfigIntervals() = %v, want %v", got, expected)
+	}
+}
+
+func TestValidateOperatorConfigs(t *testing.T) {
+	// Define test cases
+	tests := []struct {
+		name    string
+		configs []config_interval.ConfigInterval
+		wantErr bool
+	}{
+		{
+			name: "Valid configs, single config",
+			configs: []config_interval.ConfigInterval{
+				{
+					Start:  time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC),
+					End:    time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC),
+					Config: "20230101T000000Z-20230102T000000Z",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Valid configs, no gaps",
+			configs: []config_interval.ConfigInterval{
+				{
+					Start:  time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC),
+					End:    time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC),
+					Config: "20230101T000000Z-20230102T000000Z",
+				},
+				{
+					Start:  time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC),
+					End:    time.Date(2023, 1, 3, 0, 0, 0, 0, time.UTC),
+					Config: "20230102T000000Z-20230103T000000Z",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Valid configs, gaps",
+			configs: []config_interval.ConfigInterval{
+				{
+					Start:  time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC),
+					End:    time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC),
+					Config: "20230101T000000Z-20230102T000000Z",
+				},
+				{
+					Start:  time.Date(2023, 1, 3, 0, 0, 0, 0, time.UTC),
+					End:    time.Date(2023, 1, 7, 0, 0, 0, 0, time.UTC),
+					Config: "20230103T000000Z-20230107T000000Z",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Valid configs, has `present`",
+			configs: []config_interval.ConfigInterval{
+				{
+					Start:  time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC),
+					End:    time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC),
+					Config: "20230101T000000Z-20230102T000000Z",
+				},
+				{
+					Start:  time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC),
+					End:    time.Date(2023, 1, 3, 0, 0, 0, 0, time.UTC),
+					Config: "20230102T000000Z-20230103T000000Z",
+				},
+				{
+					Start:  time.Date(2023, 1, 3, 0, 0, 0, 0, time.UTC),
+					End:    time.Now().UTC(),
+					Config: "20230103T000000Z-present",
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "Invalid configs, overlapping",
+			configs: []config_interval.ConfigInterval{
+				{
+					Start:  time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC),
+					End:    time.Date(2023, 1, 4, 0, 0, 0, 0, time.UTC),
+					Config: "20230101T000000Z-20230104T000000Z",
+				},
+				{
+					Start:  time.Date(2023, 1, 2, 0, 0, 0, 0, time.UTC),
+					End:    time.Date(2023, 1, 3, 0, 0, 0, 0, time.UTC),
+					Config: "20230102T000000Z-20230103T000000Z",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Invalid configs: overlapping with multiple `present` tokens",
+			configs: []config_interval.ConfigInterval{
+				{
+					Start:  time.Date(2023, 1, 1, 0, 0, 0, 0, time.UTC),
+					End:    time.Now().UTC(),
+					Config: "20230101T00000Z-present",
+				},
+				{
+					Start:  time.Date(2023, 1, 5, 0, 0, 0, 0, time.UTC),
+					End:    time.Now().UTC(),
+					Config: "20230105T00000Z-present",
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "Invalid configs: start date in the future",
+			configs: []config_interval.ConfigInterval{
+				{
+					Start:  time.Date(2025, 1, 5, 0, 0, 0, 0, time.UTC),
+					End:    time.Date(2026, 1, 5, 0, 0, 0, 0, time.UTC),
+					Config: "20250105T00000Z-20260105T000000Z",
+				},
+			},
+			wantErr: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			logger := &logger.TestLogger{}
+			ValidateOperatorConfigs(tt.configs, logger)
+			if logger.FatalCalled != tt.wantErr {
+				t.Errorf("ValidateOperatorConfigs() error = %v, wantErr %v", logger.Logs, tt.wantErr)
+			}
+		})
 	}
 }
