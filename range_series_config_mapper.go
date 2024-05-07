@@ -5,10 +5,10 @@ import (
 	"log"
 	"path/filepath"
 
-	"git.axiom/axiom/hfradar-config-mapper/internal/logger"
-	"git.axiom/axiom/hfradar-config-mapper/internal/mapping"
-	"git.axiom/axiom/hfradar-config-mapper/internal/read"
-	"git.axiom/axiom/hfradar-config-mapper/internal/write"
+	"git.axiom/axiom/range-series-config-mapper/internal/logger"
+	"git.axiom/axiom/range-series-config-mapper/internal/mapping"
+	"git.axiom/axiom/range-series-config-mapper/internal/read"
+	"git.axiom/axiom/range-series-config-mapper/internal/write"
 )
 
 const (
