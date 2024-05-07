@@ -13,24 +13,28 @@ import (
 	"git.axiom/axiom/hfradar-config-mapper/internal/logger"
 )
 
-const configDateTimePattern = `\d{4}\d{2}\d{2}T\d{2}\d{2}\d{2}Z`
+const (
+	configDateTimePattern = `\d{4}\d{2}\d{2}T\d{2}\d{2}\d{2}Z`
+	configTimeLayout      = "20060102T150405Z"
+	configStartTimeIndex  = 0
+	configEndTimeIndex    = 1
+)
 
-const configTimeLayout = "20060102T150405Z"
-const configStartTimeIndex = 0
-const configEndTimeIndex = 1
+const (
+	operatorConfigTimeDelimiter = "-"
+	presentToken                = "present"
+)
 
-const operatorConfigTimeDelimiter = "-"
-const presentToken = "present"
-
-const rangeSeriesDateTimePattern = `\d{4}_\d{2}_\d{2}_\d{6}`
-const rangeSeriesTimeLayout = "2006_01_02_150405"
+const (
+	rangeSeriesDateTimePattern = `\d{4}_\d{2}_\d{2}_\d{6}`
+	rangeSeriesTimeLayout      = "2006_01_02_150405"
+)
 
 var timeNow = func() time.Time {
 	return time.Now()
 }
 
 func parseConfigDateTime(str string, pattern string) (time.Time, error) {
-	// TODO: Refactor this function to be general purpose
 	re, err := regexp.Compile(pattern)
 	if err != nil {
 		return time.Time{}, err
@@ -71,6 +75,7 @@ func BuildOperatorConfigIntervals(configs []string) []config_interval.ConfigInte
 		} else if !strings.Contains(a, presentToken) && strings.Contains(b, presentToken) {
 			return -1
 		}
+
 		// If both or neither timestamp contains present, sort as regular strings
 		return strings.Compare(a, b)
 	})
