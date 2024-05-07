@@ -69,3 +69,6 @@ Compute mapping for both `Rng_mgs1_2023_05_17_070610.rs` and `Rng_mgs1_2023_05_2
     /my/hfradar/archive/dir/UCSB/MGS1/RangeSeries/2023/05/17/Rng_mgs1_2023_05_17_070610.rs \
     /my/hfradar/archive/dir/UCSB/MGS1/RangeSeries/2023/05/23/Rng_mgs1_2023_05_23_032006.rs
 ```
+
+### Notes
+If a RangeSeries file does not have a matching config, it will be mapped to an empty string.

@@ -11,16 +11,23 @@ import (
 	"git.axiom/axiom/hfradar-config-mapper/internal/write"
 )
 
-const autoConfigDir = "Config_Auto"
-const operatorConfigDir = "Config_Operator"
-const rangeSeriesDir = "RangeSeries"
+const (
+	autoConfigDir     = "Config_Auto"
+	operatorConfigDir = "Config_Operator"
+	rangeSeriesDir    = "RangeSeries"
+)
 
-// Split this up
-const configFileNamePattern = `\d{4}\d{2}\d{2}T\d{2}\d{2}\d{2}Z(-(\d{4}\d{2}\d{2}T\d{2}\d{2}\d{2}Z|present))?$`
-const rangeSeriesFilePathPattern = `\d{4}\/\d{2}\/\d{2}/.*.rs$`
+const (
+	configFileNamePattern      = `\d{4}\d{2}\d{2}T\d{2}\d{2}\d{2}Z(-(\d{4}\d{2}\d{2}T\d{2}\d{2}\d{2}Z|present))?$`
+	rangeSeriesFilePathPattern = `\d{4}\/\d{2}\/\d{2}/.*.rs$`
+)
+
+const (
+	OutputFileTypeJSON = "JSON"
+	OutputFileTypeCSV  = "CSV"
+)
 
 func parseArgs() ([]string, bool, string, string, string) {
-	// TODO: Name return values
 	siteDir := flag.String("site-dir", "", "Absolute path to HFR site directory.")
 	allRangeSeries := flag.Bool("all", false, "Boolean flag indicating whether to produce a mapping for all "+
 		"RangeSeries files for the site. If set, `siteDir/RangeSeries` will be scanned for RangeSeries files.")
@@ -53,7 +60,7 @@ func validateArgs(targetRangeseriesFiles []string, allRangeSeries bool, siteDir,
 	}
 
 	// outputFileType can only be `JSON` or `CSV`
-	if !(outputFileType == "JSON" || outputFileType == "CSV") {
+	if !(outputFileType == OutputFileTypeJSON || outputFileType == OutputFileTypeCSV) {
 		log.Fatalf("Error: Invalid output-file-type of '%v'. Supported values are 'JSON' and 'CSV'.\n", outputFileType)
 	}
 }
@@ -83,9 +90,9 @@ func readRangeSeriesFiles(siteDir string) []string {
 func writeResult(mapping map[string]string, format string, fileName string) {
 	log.Println("Writing mapping to disk...")
 
-	if format == "JSON" {
+	if format == OutputFileTypeJSON {
 		write.SaveMapAsJson(mapping, fileName)
-	} else if format == "CSV" {
+	} else if format == OutputFileTypeCSV {
 		write.SaveMapAsCsv(mapping, fileName)
 	}
 }
