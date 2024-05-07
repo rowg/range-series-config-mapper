@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
-	"git.axiom/axiom/hfradar-config-mapper/internal/config_interval"
-	"git.axiom/axiom/hfradar-config-mapper/internal/logger"
+	"git.axiom/axiom/range-series-config-mapper/internal/config_interval"
+	"git.axiom/axiom/range-series-config-mapper/internal/logger"
 )
 
 const (

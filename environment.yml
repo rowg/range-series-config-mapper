@@ -1,4 +1,4 @@
-name: hfradar-config-mapper
+name: range-series-config-mapper
 channels:
   - conda-forge
 dependencies:

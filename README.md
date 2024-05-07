@@ -4,7 +4,7 @@
 ### Setup conda environment
 ```
 mamba env create -f environment.yml
-mamba activate hfradar-config-mapper
+mamba activate range-series-config-mapper
 ```
 
 ### Building the binary
@@ -13,7 +13,7 @@ In the project root directory, run the following command:
 go build
 ```
 
-A binary will appear in the project directory: `hfradar-config-mapper`
+A binary will appear in the project directory: `range-series-config-mapper`
 
 To compile for a specific os/platform, set the `GOOS` & `GOARCH` environment variables:
 ```
@@ -32,7 +32,7 @@ The HF Radar archive data is assumed to be structured in the following manner:
 ```
 
 ### Flags
-`hfradar-config-mapper` accepts the following CLI flags:
+`range-series-config-mapper` accepts the following CLI flags:
 - `--site-dir`: The directory of the HF Radar site that you want to create a RangeSeries:Config mapping for
 - `--output-file-type`: The desired file format for the output, either `JSON` or `CSV`
 - `--output-file-name`: The base name for the output file.
@@ -44,7 +44,7 @@ You can specify the RangeSeries files of interest by passing them as unnamed arg
 ### Examples
 Compute mapping for all config files. Output result in `JSON` format to `myMapping.json`:
 ```
-./hfradar-config-mapper \
+./range-series-config-mapper \
     --site-dir="/my/hfradar/archive/dir/UCSB/MGS1" \
     --output-file-type="JSON" \
     --output-file-name="myMapping" \
@@ -53,7 +53,7 @@ Compute mapping for all config files. Output result in `JSON` format to `myMappi
 
 Compute mapping for `Rng_mgs1_2023_05_17_070610.rs`. Output result in `CSV` format as `mgs1_configs.csv`.
 ```
-./hfradar-config-mapper \
+./range-series-config-mapper \
     --site-dir="/my/hfradar/archive/dir/UCSB/MGS1" \
     --output-file-type="CSV" \
     --output-file-name="mgs1_configs" \
@@ -62,7 +62,7 @@ Compute mapping for `Rng_mgs1_2023_05_17_070610.rs`. Output result in `CSV` form
 
 Compute mapping for both `Rng_mgs1_2023_05_17_070610.rs` and `Rng_mgs1_2023_05_23_032006.rs`. Output result in `JSON` format as `mgs1_configs.json`.
 ```
-./hfradar-config-mapper \
+./range-series-config-mapper \
     --site-dir="/my/hfradar/archive/dir/UCSB/MGS1" \
     --output-file-type="JSON" \
     --output-file-name="mgs1_configs" \
